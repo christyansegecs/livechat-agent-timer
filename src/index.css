@@ -1,0 +1,177 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: Inter, Arial, sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+body {
+  margin: 0;
+  min-width: 280px;
+  min-height: 100vh;
+}
+
+button {
+  font: inherit;
+}
+
+.app {
+  padding: 14px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.status {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.empty {
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: white;
+}
+
+.empty p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.timerCard {
+  padding: 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+}
+
+.timerCard.expired {
+  border-color: #fecaca;
+  background: #fff1f2;
+}
+
+.timerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.timerValue {
+  margin: 18px 0;
+  font-size: 52px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  text-align: center;
+}
+
+.expired .timerValue {
+  color: #dc2626;
+}
+
+.details {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.details span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.details strong {
+  font-size: 13px;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+}
+
+button {
+  width: 100%;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #0f172a;
+}
+
+button.danger {
+  background: #ef4444;
+}
+
+button:hover {
+  filter: brightness(0.96);
+}
