@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { createDetailsWidget } from "@livechat/agent-app-sdk";
 
 const STORAGE_KEY = "livechat-agent-timer-state-v2";
@@ -157,6 +157,11 @@ export default function App() {
   const [sdkStatus, setSdkStatus] = useState("Carregando SDK...");
 
   const currentChatId = getProfileChatId(profile);
+  const currentChatIdRef = useRef(currentChatId);
+
+  useEffect(() => {
+    currentChatIdRef.current = currentChatId;
+  }, [currentChatId]);
 
   useEffect(() => {
     let mounted = true;
@@ -186,6 +191,56 @@ export default function App() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!widget) return;
+
+    const handleIncomingEvent = (eventData) => {
+      console.log("LiveChat Evento Recebido:", eventData);
+      
+      const eventChatId = 
+        eventData?.chatId || 
+        eventData?.chat_id || 
+        eventData?.chat?.chat_id || 
+        eventData?.chat?.id || 
+        currentChatIdRef.current;
+        
+      if (eventChatId) {
+        setTimers((current) => {
+          const timer = current[eventChatId];
+          if (!timer) return current;
+          
+          const nowTime = Date.now();
+          const next = {
+            ...current,
+            [eventChatId]: {
+              ...timer,
+              endAt: nowTime + timer.durationMs,
+              expired: false,
+              resets: (timer.resets || 0) + 1,
+              status: "running",
+              remainingMs: timer.durationMs,
+              updatedAt: nowTime
+            }
+          };
+          saveStorage(next);
+          return next;
+        });
+      }
+    };
+
+    widget.on("incoming_event", handleIncomingEvent);
+    widget.on("incoming_room_event", handleIncomingEvent);
+    widget.on("incoming_message", handleIncomingEvent);
+    widget.on("message_sent", handleIncomingEvent);
+
+    return () => {
+      widget.off("incoming_event", handleIncomingEvent);
+      widget.off("incoming_room_event", handleIncomingEvent);
+      widget.off("incoming_message", handleIncomingEvent);
+      widget.off("message_sent", handleIncomingEvent);
+    };
+  }, [widget]);
 
   useEffect(() => {
     if (!profile) return;
