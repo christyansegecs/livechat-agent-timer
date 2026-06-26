@@ -11,7 +11,9 @@
 const CLIENT_ID = "89c9217a926be1bc8e4ac5bbf873273f";
 const AUTHORIZE_URL = "https://accounts.livechat.com/";
 const API_BASE = "https://api.livechatinc.com/v3.5/agent/action";
-const SCOPE = "chats--my:ro";
+// get_chat exige especificamente chats--all:ro ou chats--access:ro
+// (chats--my:ro NÃO é suficiente e causa 403 Forbidden).
+const SCOPE = "chats--access:ro";
 
 const TOKENS_KEY = "livechat-agent-timer-oauth-tokens";
 const STATE_KEY = "livechat-agent-timer-oauth-state";
@@ -38,6 +40,7 @@ function getStoredTokens() {
 function saveTokens({ access_token, expires_in }) {
   const tokens = {
     access_token,
+    scope: SCOPE,
     expires_at: Date.now() + (Number(expires_in) || 3600) * 1000 - 30_000
   };
   localStorage.setItem(TOKENS_KEY, JSON.stringify(tokens));
@@ -97,6 +100,15 @@ export function handleRedirectCallback() {
 export function getValidAccessToken() {
   const tokens = getStoredTokens();
   if (!tokens) return null;
+
+  // Token emitido com um scope antigo/diferente do que o código pede agora
+  // (ex: depois de corrigirmos chats--my:ro para chats--access:ro): inválido,
+  // força um novo login em vez de tentar usar um token sem a permissão certa.
+  if (tokens.scope !== SCOPE) {
+    clearTokens();
+    return null;
+  }
+
   if (Date.now() >= tokens.expires_at) {
     clearTokens();
     return null;
