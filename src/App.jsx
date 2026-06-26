@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { createDetailsWidget } from "@livechat/agent-app-sdk";
+import pkg from "../package.json";
+
+const APP_VERSION = pkg.version;
+const LOADED_AT = new Date().toISOString();
 
 const STORAGE_KEY = "livechat-agent-timer-state-v2";
 const DEFAULT_DURATION_MS = 2 * 60 * 1000;
@@ -164,9 +168,7 @@ export default function App() {
   }, [currentChatId]);
 
   useEffect(() => {
-    console.log(
-      `[livechat-agent-timer] versão ${__APP_VERSION__} — build ${__BUILD_TIME__}`
-    );
+    console.log(`[livechat-agent-timer] versão ${APP_VERSION} — carregado em ${LOADED_AT}`);
   }, []);
 
   useEffect(() => {
