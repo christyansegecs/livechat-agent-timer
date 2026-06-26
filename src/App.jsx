@@ -248,13 +248,9 @@ export default function App() {
   const [hasOAuthSession, setHasOAuthSession] = useState(isLoggedIn());
 
   useEffect(() => {
-    handleRedirectCallback()
-      .then((loggedInNow) => {
-        if (loggedInNow) setHasOAuthSession(true);
-      })
-      .catch((error) => {
-        console.error("[livechat-oauth] erro ao finalizar login:", error);
-      });
+    if (handleRedirectCallback()) {
+      setHasOAuthSession(true);
+    }
   }, []);
 
   const lastMessageIdsRef = useRef({});
@@ -263,7 +259,7 @@ export default function App() {
     if (!hasOAuthSession) return;
 
     const pollChatsForNewMessages = async () => {
-      const accessToken = await getValidAccessToken();
+      const accessToken = getValidAccessToken();
       if (!accessToken) {
         setHasOAuthSession(false);
         return;
