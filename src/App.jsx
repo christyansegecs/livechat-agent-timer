@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { createDetailsWidget } from "@livechat/agent-app-sdk";
 import pkg from "../package.json";
+import {
+  startLogin,
+  handleRedirectCallback,
+  getValidAccessToken,
+  fetchLatestMessageId,
+  isLoggedIn
+} from "./lib/livechatOAuth";
+
+const MESSAGE_POLL_INTERVAL_MS = 8000;
 
 const APP_VERSION = pkg.version;
 const LOADED_AT = new Date().toISOString();
@@ -199,9 +208,6 @@ export default function App() {
         createdWidget.on("customer_profile", (newProfile) => {
           setProfile(newProfile);
         });
-
-        // Sem isso, o LiveChat nunca envia o evento "message" para o app.
-        createdWidget.watchMessages();
       })
       .catch((error) => {
         console.error("Erro ao criar Details Widget:", error);
@@ -213,53 +219,83 @@ export default function App() {
     };
   }, []);
 
+  // O Details Widget não emite eventos de mensagem (confirmado na doc oficial:
+  // só existem "customer_profile" e "customer_details_section_button_click").
+  // Por isso o reset automático é feito via polling autenticado na Agent Chat API.
+  const resetTimerByChatId = (chatId) => {
+    setTimers((current) => {
+      const timer = current[chatId];
+      if (!timer) return current;
+
+      const nowTime = Date.now();
+      const next = {
+        ...current,
+        [chatId]: {
+          ...timer,
+          endAt: nowTime + timer.durationMs,
+          expired: false,
+          resets: (timer.resets || 0) + 1,
+          status: "running",
+          remainingMs: timer.durationMs,
+          updatedAt: nowTime
+        }
+      };
+      saveStorage(next);
+      return next;
+    });
+  };
+
+  const [hasOAuthSession, setHasOAuthSession] = useState(isLoggedIn());
+
   useEffect(() => {
-    if (!widget) return;
+    handleRedirectCallback()
+      .then((loggedInNow) => {
+        if (loggedInNow) setHasOAuthSession(true);
+      })
+      .catch((error) => {
+        console.error("[livechat-oauth] erro ao finalizar login:", error);
+      });
+  }, []);
 
-    const handleIncomingEvent = (eventData) => {
-      console.log("LiveChat Evento Recebido:", eventData);
+  const lastMessageIdsRef = useRef({});
 
-      // O evento "message" do SDK manda o id do chat no campo "chat".
-      const eventChatId = eventData?.chat || currentChatIdRef.current;
+  useEffect(() => {
+    if (!hasOAuthSession) return;
 
-      if (eventChatId) {
-        setTimers((current) => {
-          const timer = current[eventChatId];
-          if (!timer) return current;
-          
-          const nowTime = Date.now();
-          const next = {
-            ...current,
-            [eventChatId]: {
-              ...timer,
-              endAt: nowTime + timer.durationMs,
-              expired: false,
-              resets: (timer.resets || 0) + 1,
-              status: "running",
-              remainingMs: timer.durationMs,
-              updatedAt: nowTime
-            }
-          };
-          saveStorage(next);
-          return next;
-        });
+    const pollChatsForNewMessages = async () => {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        setHasOAuthSession(false);
+        return;
+      }
+
+      const runningChatIds = Object.values(timers)
+        .filter((timer) => timer.status === "running" && !timer.chatId?.startsWith("mock-"))
+        .map((timer) => timer.chatId);
+
+      for (const chatId of runningChatIds) {
+        try {
+          const latestMessageId = await fetchLatestMessageId(chatId, accessToken);
+          if (!latestMessageId) continue;
+
+          const previousMessageId = lastMessageIdsRef.current[chatId];
+          lastMessageIdsRef.current[chatId] = latestMessageId;
+
+          // Só reseta a partir da segunda checagem: a primeira apenas
+          // estabelece a referência, sem disparar um reset "falso".
+          if (previousMessageId && previousMessageId !== latestMessageId) {
+            resetTimerByChatId(chatId);
+          }
+        } catch (error) {
+          console.error(`[livechat-oauth] erro ao consultar chat ${chatId}:`, error);
+        }
       }
     };
 
-    widget.on("message", handleIncomingEvent);
-
-    // DEBUG temporário: loga QUALQUER evento que o widget receber, com
-    // o nome real do evento, para descobrir por que "message" não chega.
-    const handleAnyEvent = (eventName, payload) => {
-      console.log("[DEBUG widget event]", eventName, payload);
-    };
-    widget.on("*", handleAnyEvent);
-
-    return () => {
-      widget.off("message", handleIncomingEvent);
-      widget.off("*", handleAnyEvent);
-    };
-  }, [widget]);
+    pollChatsForNewMessages();
+    const interval = setInterval(pollChatsForNewMessages, MESSAGE_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [hasOAuthSession, timers]);
 
   useEffect(() => {
     if (!profile) return;
@@ -531,6 +567,11 @@ export default function App() {
         </div>
 
         <div className="header-actions">
+          {!hasOAuthSession && (
+            <button type="button" className="btn-login" onClick={startLogin} title="Conectar ao LiveChat para resetar o timer automaticamente">
+              🔌 Conectar ao LiveChat
+            </button>
+          )}
           <button type="button" className="btn-circle" onClick={addMockTimer} title="Adicionar Mock Timer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="icon">
               <line x1="12" y1="5" x2="12" y2="19"></line>
