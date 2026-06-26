@@ -9,7 +9,7 @@ import {
   isLoggedIn
 } from "./lib/livechatOAuth";
 
-const MESSAGE_POLL_INTERVAL_MS = 8000;
+const MESSAGE_POLL_INTERVAL_MS = 1000;
 
 const APP_VERSION = pkg.version;
 const LOADED_AT = new Date().toISOString();
