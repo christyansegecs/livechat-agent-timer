@@ -164,6 +164,12 @@ export default function App() {
   }, [currentChatId]);
 
   useEffect(() => {
+    console.log(
+      `[livechat-agent-timer] versão ${__APP_VERSION__} — build ${__BUILD_TIME__}`
+    );
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
 
     createDetailsWidget()
@@ -172,6 +178,16 @@ export default function App() {
 
         setWidget(createdWidget);
         setSdkStatus("HUD ativo");
+
+        // Conectou de verdade ao LiveChat: os chats mockados de demonstração
+        // não fazem sentido aqui, então removemos do estado e do storage.
+        setTimers((current) => {
+          const next = Object.fromEntries(
+            Object.entries(current).filter(([chatId]) => !chatId.startsWith("mock-"))
+          );
+          saveStorage(next);
+          return next;
+        });
 
         const initialProfile = createdWidget.getCustomerProfile();
         if (initialProfile) {
