@@ -248,8 +248,16 @@ export default function App() {
 
     widget.on("message", handleIncomingEvent);
 
+    // DEBUG temporário: loga QUALQUER evento que o widget receber, com
+    // o nome real do evento, para descobrir por que "message" não chega.
+    const handleAnyEvent = (eventName, payload) => {
+      console.log("[DEBUG widget event]", eventName, payload);
+    };
+    widget.on("*", handleAnyEvent);
+
     return () => {
       widget.off("message", handleIncomingEvent);
+      widget.off("*", handleAnyEvent);
     };
   }, [widget]);
 
