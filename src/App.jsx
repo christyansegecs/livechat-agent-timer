@@ -181,6 +181,9 @@ export default function App() {
         createdWidget.on("customer_profile", (newProfile) => {
           setProfile(newProfile);
         });
+
+        // Sem isso, o LiveChat nunca envia o evento "message" para o app.
+        createdWidget.watchMessages();
       })
       .catch((error) => {
         console.error("Erro ao criar Details Widget:", error);
@@ -197,14 +200,10 @@ export default function App() {
 
     const handleIncomingEvent = (eventData) => {
       console.log("LiveChat Evento Recebido:", eventData);
-      
-      const eventChatId = 
-        eventData?.chatId || 
-        eventData?.chat_id || 
-        eventData?.chat?.chat_id || 
-        eventData?.chat?.id || 
-        currentChatIdRef.current;
-        
+
+      // O evento "message" do SDK manda o id do chat no campo "chat".
+      const eventChatId = eventData?.chat || currentChatIdRef.current;
+
       if (eventChatId) {
         setTimers((current) => {
           const timer = current[eventChatId];
@@ -229,16 +228,10 @@ export default function App() {
       }
     };
 
-    widget.on("incoming_event", handleIncomingEvent);
-    widget.on("incoming_room_event", handleIncomingEvent);
-    widget.on("incoming_message", handleIncomingEvent);
-    widget.on("message_sent", handleIncomingEvent);
+    widget.on("message", handleIncomingEvent);
 
     return () => {
-      widget.off("incoming_event", handleIncomingEvent);
-      widget.off("incoming_room_event", handleIncomingEvent);
-      widget.off("incoming_message", handleIncomingEvent);
-      widget.off("message_sent", handleIncomingEvent);
+      widget.off("message", handleIncomingEvent);
     };
   }, [widget]);
 
